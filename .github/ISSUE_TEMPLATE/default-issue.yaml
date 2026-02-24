@@ -1,0 +1,35 @@
+name: Default Issue
+description: File a default issue with structured information
+projects: ["quak"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please specify the issue as much as possible. Use links to documentation, references to the code (repos, modules, classes, functions, etc.)
+
+  - type: textarea
+    id: issue
+    attributes:
+      label: Issue
+      description: What are we trying to solve?
+      placeholder: "We need to develop a feature that..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed-solution
+    attributes:
+      label: Proposed solution
+      description: How could the problem be solved?
+      placeholder: "1. Change script X to do Y\n2. Remove Z\n3. Write more tests for Y"
+    validations:
+      required: true
+
+  - type: textarea
+    id: testing-criteria
+    attributes:
+      label: Testing criteria
+      description: How can a reviewer verify the issue is solved?
+      placeholder: "- [ ]  Performance is improved\n- [ ] Tests pass"
+    validations:
+      required: true

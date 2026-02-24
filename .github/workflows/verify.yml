@@ -1,0 +1,55 @@
+# This workflow runs tests, linting and type hinting for every push
+
+name: verify
+
+on:
+  push:
+    branches-ignore:  # avoid running on main
+      - main  # verify should run on the feat branch, in main only tested stuff should be merged, then release is triggered
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHONUNBUFFERED: "1"
+  FORCE_COLOR: "1"
+
+jobs:
+  run:
+    name: verify
+    runs-on: ubuntu-latest
+
+
+
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v4
+
+    - name: Install just
+      uses: extractions/setup-just@v3
+
+    - name: Set up access to private PyPI
+      uses: extractions/netrc@v2
+      with:
+        machine: pypi.ailab.verbi.de
+        username: ${{ secrets.PYPI_USERNAME }}
+        password: ${{ secrets.PYPI_PASSWORD }}
+
+    - name: Install the project
+      run: just sync
+
+    - name: Run tests
+      run: just test
+
+    - name: Run linting
+      run: just format
+
+    - name: Run type checks
+      run: just check-types
+
+    - name: Run complexity analysis
+      run: just analyze-complexity

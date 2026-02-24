@@ -1,0 +1,74 @@
+[project]
+name = "lmtk"
+version = "0.1.0"
+description = "Language Models, as God intended."
+requires-python = ">=3.12,<3.14"
+dependencies = [
+    "pydantic>=2.12.5",
+]
+
+[tool.uv]
+package = true
+
+[project.scripts]
+lmtk = "lmtk.cli:main"
+
+# use this to install local dependencies
+# [tool.uv.sources]
+# package = { path = "<relative path to package>", edit = True }
+
+[dependency-groups]
+dev = [
+    "pyrefly",
+    "complexipy",
+    "pytest-cov",
+    "ruff",
+    "pygithub",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/lmtk"]
+
+[tool.ruff]
+fix = true
+line-length = 100
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.isort]
+combine-as-imports = true
+
+[tool.ruff.lint]
+select = ["D"]
+ignore = ["D105"]
+
+[tool.coverage.run]
+source = ["src"]
+omit = ["tests/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+]
+
+[tool.semantic_release]
+version_toml = ["pyproject.toml:project.version"]
+build_command = ""
+commit_message = "chore: release {version}"
+commit_parser = "conventional"
+tag_format = "v{version}"
+changelog_file = false
+
+[tool.semantic_release.branches.main]
+match = "main"
+prerelease = false
