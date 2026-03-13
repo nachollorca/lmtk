@@ -32,14 +32,16 @@ class Provider(ABC):
         cls,
         model_id: str,
         messages: list[Message],
-        system_instruction: str | None = None,
-        output_schema: type[BaseModel] | None = None,
-        stream: bool = False,
-        generation_kwargs: dict | None = None,
+        system_instruction: str | None,
+        output_schema: type[BaseModel] | None,
+        stream: bool,
+        generation_kwargs: dict,
     ) -> ModelResponse | Iterator[str]:
         """Generate a response from the provider.
 
         Resolves API credentials and delegates to the provider implementation.
+        Callers are responsible for parameter validation and defaults
+        (see ``lmtk.core.get_response``).
 
         Args:
             model_id: The model identifier (e.g. ``"devstral-latest"``).
@@ -48,23 +50,14 @@ class Provider(ABC):
             output_schema: Optional Pydantic model class for structured output.
             stream: Whether to stream the response.
             generation_kwargs: Additional generation parameters.
-                Defaults to ``{"temperature": 0}``.
 
         Returns:
             A ModelResponse with the generated content and metadata.
         """
-        # ensure the options selected are possible
-        if stream and output_schema:
-            raise ValueError("Only one between `stream` and `output_schema` can be active.")
-
         # resolve key
         api_key = resolve_api_key(cls.api_key_name)
         if not api_key:
             raise ValueError(f"{cls.api_key_name} not found in .conf/lmtk/secrets.yaml or env vars")
-
-        # this pattern avoids mutable default arg
-        if generation_kwargs is None:
-            generation_kwargs = {"temperature": 0}
 
         # call child implementation
         params = dict(

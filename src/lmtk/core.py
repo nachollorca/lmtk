@@ -1,8 +1,18 @@
 """Contains the main logic to call language model APIs."""
 
+from collections.abc import Iterator
+
 from pydantic import BaseModel
 
 from lmtk.datatypes import Message, ModelResponse
+from lmtk.provider import Provider
+
+
+def _get_provider(model: str) -> Provider:
+    """Gets the appropriate Provider class for the given model string."""
+    provider_name = model.split(":")
+    # load the corresponding Provider
+    raise NotImplementedError()
 
 
 # TODO: think if this should be get_response or generate_response
@@ -10,44 +20,16 @@ def get_response(
     model: str,
     messages: list[Message],
     system_instruction: str | None = None,
-    output_schema: BaseModel | None = None,
+    output_schema: type[BaseModel] | None = None,
     stream: bool = False,
-    generation_kargs: dict = {"temperature": 0},
-) -> ModelResponse:  # type: ignore
+    generation_kwargs: dict | None = None,
+) -> ModelResponse | Iterator[str]:
     """Docstring."""
     if output_schema and stream:
-        raise RuntimeError(f"Only `stream` or `output_schema` can be set, not both.")
-    ...
+        raise ValueError("Only `stream` or `output_schema` can be set, not both.")
 
+    if generation_kwargs is None:
+        generation_kwargs = {"temperature": 0}
 
-class Chat:
-    """Docstring."""
-
-    def __init__(
-        self,
-        model: str,
-        system_instruction: str,
-        output_schema: BaseModel | None = None,
-        stream=True,
-        generation_kwargs: dict = {"temperature": 0},
-    ):
-        """Docstring."""
-        self.model = model
-        self.system_instruction = system_instruction
-        self.output_schema = output_schema
-        self.stream = stream
-        self.generation_kargs = generation_kwargs
-        self.messages: list[Message] = []
-
-    def get_response(self, message: Message) -> ModelResponse:
-        """Docstring."""
-        self.messages.append(message)
-        response = get_response(
-            model=self.model,
-            messages=self.messages,
-            system_instruction=self.system_instruction,
-            stream=self.stream,
-            generation_kargs=self.generation_kargs,
-        )
-        self.messages.append(response.message)
-        return response
+    # get provider, attempt to call the get_response
+    raise NotImplementedError()
