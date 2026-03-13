@@ -129,4 +129,4 @@ gcp_credentials.json
 .netrc
 
 # complexipy
-.complexipy
+.complexipy*
