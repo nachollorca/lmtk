@@ -127,3 +127,6 @@ gcp_credentials.json
 # lock files
 *.lock
 .netrc
+
+# complexipy
+.complexipy
