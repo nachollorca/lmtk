@@ -1,22 +1,16 @@
 """Abstract base class for LLM providers."""
 
+import os
 from abc import ABC, abstractmethod
 from collections.abc import Iterator
 
-from pydantic import BaseModel
-
-from lmtk.datatypes import Message, ModelResponse
-from lmtk.secrets import resolve_api_key
+from lmtk.datatypes import CompletionRequest, CompletionResponse
 
 
 class Provider(ABC):
     """Interface that all LLM providers must implement.
 
     Subclasses must define the following class attributes:
-
-        model_ids: A list of supported model identifiers.
-            This is just for the selector of the TUI, nothing is enforced.
-            You can try to run a model that is not in the list.
         api_key_name: The environment variable name for the provider's API key.
 
     The base class handles credential resolution and validation.
@@ -24,82 +18,32 @@ class Provider(ABC):
     receiving the API key as a parameter.
     """
 
-    model_ids: list[str]
     api_key_name: str
 
     @classmethod
     def get_response(
-        cls,
-        model_id: str,
-        messages: list[Message],
-        system_instruction: str | None,
-        output_schema: type[BaseModel] | None,
-        stream: bool,
-        generation_kwargs: dict,
-    ) -> ModelResponse | Iterator[str]:
-        """Generate a response from the provider.
+        cls, request: CompletionRequest, stream: bool
+    ) -> CompletionResponse | Iterator[str]:
+        """Resolve API credentials and delegate to the provider implementation.
 
-        Resolves API credentials and delegates to the provider implementation.
-        Callers are responsible for parameter validation and defaults
-        (see ``lmtk.core.get_response``).
-
-        Args:
-            model_id: The model identifier (e.g. ``"devstral-latest"``).
-            messages: The conversation history.
-            system_instruction: Optional system prompt.
-            output_schema: Optional Pydantic model class for structured output.
-            stream: Whether to stream the response.
-            generation_kwargs: Additional generation parameters.
-
-        Returns:
-            A ModelResponse with the generated content and metadata.
+        See ``lmtk.core.get_response`` for parameter docs and defaults.
         """
-        # resolve key
-        api_key = resolve_api_key(cls.api_key_name)
+        api_key = os.getenv(cls.api_key_name)
         if not api_key:
-            raise ValueError(f"{cls.api_key_name} not found in .conf/lmtk/secrets.yaml or env vars")
+            raise ValueError(f"Environment variable {cls.api_key_name} not found.")
 
-        # call child implementation
-        params = dict(
-            model_id=model_id,
-            messages=messages,
-            api_key=api_key,
-            system_instruction=system_instruction,
-            output_schema=output_schema,
-            generation_kwargs=generation_kwargs,
-        )
         if stream:
-            return cls._stream(**params)  # type: ignore[arg-type]
-        return cls._get_response(**params)  # type: ignore[arg-type]
+            return cls._stream(request, api_key)
+        return cls._get_response(request, api_key)
 
     @classmethod
     @abstractmethod
-    def _get_response(
-        cls,
-        model_id: str,
-        messages: list[Message],
-        api_key: str,
-        system_instruction: str | None,
-        output_schema: type[BaseModel] | None,
-        generation_kwargs: dict,
-    ) -> ModelResponse:
-        """Provider-specific response generation. See ``get_response`` for details."""
+    def _get_response(cls, request: CompletionRequest, api_key: str) -> CompletionResponse:
+        """Provider-specific response generation."""
         ...
 
     @classmethod
     @abstractmethod
-    def _stream(
-        cls,
-        model_id: str,
-        messages: list[Message],
-        api_key: str,
-        system_instruction: str | None,
-        output_schema: type[BaseModel] | None,
-        generation_kwargs: dict,
-    ) -> Iterator[str]:
-        """Stream chat completion tokens from the provider.
-
-        Yields:
-            Individual content tokens as they arrive.
-        """
+    def _stream(cls, request: CompletionRequest, api_key: str) -> Iterator[str]:
+        """Stream chat completion tokens from the provider."""
         ...
