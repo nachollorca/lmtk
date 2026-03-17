@@ -1,6 +1,6 @@
 """Contains the public-facing symbols."""
 
-from lmtk.core import get_response
+from lmtk.core import get_response, get_response_batch
 from lmtk.datatypes import (
     AssistantMessage,
     CompletionRequest,
@@ -11,6 +11,7 @@ from lmtk.datatypes import (
 
 __all__ = [
     "get_response",
+    "get_response_batch",
     "Message",
     "AssistantMessage",
     "UserMessage",

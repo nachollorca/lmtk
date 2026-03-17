@@ -2,12 +2,14 @@
 
 import importlib
 from collections.abc import Iterator
+from typing import Any
 
 from pydantic import BaseModel
 
 from lmtk.datatypes import CompletionRequest, CompletionResponse, Message, UserMessage
 from lmtk.errors import AllModelsFailedError
 from lmtk.provider import Provider
+from lmtk.utils import parallelize_function
 
 
 def _load_provider(name: str) -> type[Provider]:
@@ -89,3 +91,49 @@ def get_response(
     if len(errors) == 1:
         raise next(iter(errors.values()))
     raise AllModelsFailedError(errors)
+
+
+def get_response_batch(
+    model: str | list[str],
+    messages_list: list[list[Message] | str],
+    system_instruction: str | None = None,
+    output_schema: type[BaseModel] | None = None,
+    generation_kwargs: dict[str, Any] | None = None,
+    max_workers: int = 10,
+) -> list[CompletionResponse | Exception]:
+    """Generate responses for multiple conversations in parallel.
+
+    Each conversation in *messages_list* is dispatched to :func:`get_response`
+    concurrently via a thread pool. Streaming is not supported in batch mode.
+
+    Args:
+        model: Provider-prefixed model identifier (e.g. ``"mistral:devstral-latest"``)
+            or a list of identifiers to try in order as fallbacks.
+        messages_list: A list of conversations. Each element is either a
+            message list or a plain string (interpreted as a single user message).
+        system_instruction: Optional system prompt applied to every conversation.
+        output_schema: Optional Pydantic model class for structured output.
+        generation_kwargs: Additional generation parameters forwarded to the
+            provider (e.g. ``temperature``, ``max_tokens``).
+        max_workers: Maximum number of concurrent threads.
+
+    Returns:
+        A list with one entry per conversation, in the same order as
+        *messages_list*.  Each entry is either a ``CompletionResponse`` on
+        success or the ``Exception`` that was raised on failure.
+    """
+    shared_kwargs: dict[str, Any] = {
+        "model": model,
+        "system_instruction": system_instruction,
+        "output_schema": output_schema,
+        "stream": False,
+        "generation_kwargs": generation_kwargs,
+    }
+    params_list = [{**shared_kwargs, "messages": messages} for messages in messages_list]
+
+    return parallelize_function(
+        function=get_response,
+        params_list=params_list,
+        max_workers=max_workers,
+        catch_exceptions=True,
+    )
