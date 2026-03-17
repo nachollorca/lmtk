@@ -1,6 +1,5 @@
 """Contains the main logic to call language model APIs."""
 
-import importlib
 from collections.abc import Iterator
 from typing import Any
 
@@ -8,23 +7,8 @@ from pydantic import BaseModel
 
 from lmtk.datatypes import CompletionRequest, CompletionResponse, Message, UserMessage
 from lmtk.errors import AllModelsFailedError
-from lmtk.provider import Provider
+from lmtk.provider import load_provider
 from lmtk.utils import parallelize_function
-
-
-def _load_provider(name: str) -> type[Provider]:
-    """Gets the appropriate Provider class for the given provider name.
-
-    Imports ``<Name>Provider`` from ``lmtk.providers.<name>``
-    (e.g. ``"mistral"`` -> ``MistralProvider``).
-
-    Raises:
-        ImportError: If no module matches *name*.
-        AttributeError: If the module does not contain the expected class.
-    """
-    module = importlib.import_module(f"lmtk.providers.{name}")
-    class_name = f"{name.capitalize()}Provider"
-    return getattr(module, class_name)
 
 
 def get_response(
@@ -73,7 +57,7 @@ def get_response(
     errors: dict[str, Exception] = {}
     for m in models:
         provider_name, model_id = m.split(":")
-        provider = _load_provider(name=provider_name)
+        provider = load_provider(name=provider_name)
         request = CompletionRequest(
             model_id=model_id,
             messages=messages,

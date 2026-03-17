@@ -1,5 +1,6 @@
 """Abstract base class for LLM providers."""
 
+import importlib
 import os
 from abc import ABC, abstractmethod
 from collections.abc import Iterator
@@ -74,3 +75,18 @@ class Provider(ABC):
     def _stream(cls, request: CompletionRequest, api_key: str) -> Iterator[str]:
         """Stream chat completion tokens from the provider."""
         ...
+
+
+def load_provider(name: str) -> type["Provider"]:
+    """Gets the appropriate Provider class for the given provider name.
+
+    Imports ``<Name>Provider`` from ``lmtk.providers.<name>``
+    (e.g. ``"mistral"`` -> ``MistralProvider``).
+
+    Raises:
+        ImportError: If no module matches *name*.
+        AttributeError: If the module does not contain the expected class.
+    """
+    module = importlib.import_module(f"lmtk.providers.{name}")
+    class_name = f"{name.capitalize()}Provider"
+    return getattr(module, class_name)
