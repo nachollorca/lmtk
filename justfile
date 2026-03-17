@@ -13,20 +13,20 @@ install-hooks:
     prek install --hook-type commit-msg
 
 format:
-    uv run ruff check --select I --fix .
-    uv run ruff format .
+    uvx ruff check --select I --fix .
+    uvx ruff format .
 
 test target="":
     uv run pytest --cov --cov-fail-under=90 {{target}}
 
 check-types:
-    uv run pyrefly check src
+    uvx ty check src
 
 ipython:
     uv run ipython
 
 analyze-complexity:
-    uv run complexipy src
+    uvx complexipy src
 
 run file:
     uv run --env-file .env {{file}}

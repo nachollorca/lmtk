@@ -34,6 +34,7 @@ class Provider(ABC):
         if response.status_code == 200:
             return
 
+        assert response.status_code is not None
         error_cls = STATUS_TO_ERROR.get(response.status_code, ProviderError)
         raise error_cls(
             status_code=response.status_code,

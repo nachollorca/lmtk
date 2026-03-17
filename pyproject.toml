@@ -17,12 +17,8 @@ package = true
 
 [dependency-groups]
 dev = [
-    "pyrefly",
-    "complexipy",
     "pytest-cov",
-    "ruff",
-    "pygithub",
-]
+]  # complexipy, ruff, ty are run via uvx
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
@@ -46,7 +42,7 @@ combine-as-imports = true
 
 [tool.ruff.lint]
 select = ["D", "E", "F"]
-ignore = ["D105"]
+ignore = ["D105", "D107"]
 
 [tool.coverage.run]
 source = ["src"]
