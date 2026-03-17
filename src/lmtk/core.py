@@ -5,6 +5,7 @@ from collections.abc import Iterator
 from pydantic import BaseModel
 
 from lmtk.datatypes import CompletionRequest, CompletionResponse, Message
+from lmtk.errors import AllModelsFailedError
 from lmtk.provider import Provider
 
 
@@ -15,7 +16,7 @@ def _load_provider(name: str) -> Provider:
 
 
 def get_response(
-    model: str,
+    model: str | list[str],
     messages: list[Message],
     system_instruction: str | None = None,
     output_schema: type[BaseModel] | None = None,
@@ -25,7 +26,8 @@ def get_response(
     """Generate a response from a language model.
 
     Args:
-        model: Provider-prefixed model identifier (e.g. ``"mistral:devstral-latest"``).
+        model: Provider-prefixed model identifier (e.g. ``"mistral:devstral-latest"``)
+            or a list of identifiers to try in order as fallbacks.
         messages: The conversation history.
         system_instruction: Optional system prompt prepended to the conversation.
         output_schema: Optional Pydantic model class for structured output.
@@ -39,6 +41,9 @@ def get_response(
     Returns:
         A ``CompletionResponse`` with the generated content and metadata, or an
         iterator of string tokens when *stream* is ``True``.
+
+    Raises:
+        AllModelsFailedError: If every model in the list fails.
     """
     if output_schema and stream:
         raise ValueError("Only `stream` or `output_schema` can be set, not both.")
@@ -46,15 +51,26 @@ def get_response(
     if generation_kwargs is None:
         generation_kwargs = {"temperature": 0}
 
-    provider_name, model_id = model.split(":")
-    provider = _load_provider(name=provider_name)
-    request = CompletionRequest(
-        model_id=model_id,
-        messages=messages,
-        system_instruction=system_instruction,
-        output_schema=output_schema,
-        generation_kwargs=generation_kwargs,
-    )
-    provider.get_response(request=request, stream=stream)
+    models = [model] if isinstance(model, str) else model
 
-    raise NotImplementedError()
+    errors: dict[str, Exception] = {}
+    for m in models:
+        provider_name, model_id = m.split(":")
+        provider = _load_provider(name=provider_name)
+        request = CompletionRequest(
+            model_id=model_id,
+            messages=messages,
+            system_instruction=system_instruction,
+            output_schema=output_schema,
+            generation_kwargs=generation_kwargs,
+        )
+        try:
+            return provider.get_response(request=request, stream=stream)
+        except Exception as exc:
+            errors[m] = exc
+
+    # If just one model, raise that particular error, not AllModelsFailed
+    if len(errors) == 1:
+        raise next(iter(errors.values()))
+
+    raise AllModelsFailedError(errors)

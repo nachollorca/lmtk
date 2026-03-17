@@ -30,6 +30,19 @@ class RateLimitError(ProviderError):
     """Raised for 429 responses -- too many requests."""
 
 
+class AllModelsFailedError(LMTKError):
+    """Raised when every model in a fallback list fails.
+
+    Attributes:
+        errors: Mapping of model identifier to the exception it raised.
+    """
+
+    def __init__(self, errors: dict[str, Exception]):
+        self.errors = errors
+        summary = "; ".join(f"{m}: {e}" for m, e in errors.items())
+        super().__init__(f"All models failed: {summary}")
+
+
 STATUS_TO_ERROR: dict[int, type[ProviderError]] = {
     401: AuthenticationError,
     403: AuthenticationError,
