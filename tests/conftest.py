@@ -39,13 +39,13 @@ class FakeProvider(Provider):
     stream_fn: Callable[[CompletionRequest, str], Iterator[str]] | None = None
 
     @classmethod
-    def _get_response(cls, request: CompletionRequest, api_key: str) -> CompletionResponse:
+    def _get_full_response(cls, request: CompletionRequest, api_key: str) -> CompletionResponse:
         if cls.response_fn is not None:
             return cls.response_fn(request, api_key)
         return _DEFAULT_RESPONSE
 
     @classmethod
-    def _stream(cls, request: CompletionRequest, api_key: str) -> Iterator[str]:
+    def _stream_response(cls, request: CompletionRequest, api_key: str) -> Iterator[str]:
         if cls.stream_fn is not None:
             return cls.stream_fn(request, api_key)
         return iter(["chunk1", "chunk2"])

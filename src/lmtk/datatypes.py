@@ -1,5 +1,6 @@
 """Contains the data contracts used across the app."""
 
+from collections.abc import Sequence
 from dataclasses import asdict, dataclass
 from itertools import chain
 from typing import Any
@@ -42,7 +43,7 @@ class CompletionRequest:
     """
 
     model_id: str
-    messages: list[Message]
+    messages: Sequence[Message]
     system_instruction: str | None
     output_schema: type[BaseModel] | None
     generation_kwargs: dict

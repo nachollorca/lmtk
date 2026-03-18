@@ -3,8 +3,6 @@
 import time
 from collections.abc import Iterator
 
-import requests
-
 from lmtk.datatypes import CompletionRequest, CompletionResponse
 from lmtk.provider import Provider
 
@@ -17,7 +15,10 @@ class MistralProvider(Provider):
     api_key_name = "MISTRAL_API_KEY"
 
     @classmethod
-    def _get_response(cls, request: CompletionRequest, api_key: str) -> CompletionResponse:
+    def _get_full_response(cls, request: CompletionRequest, api_key: str) -> CompletionResponse:
+        if request.output_schema:
+            raise NotImplementedError("output_schema is not yet supported by MistralProvider")
+
         api_messages: list[dict] = []
         if request.system_instruction:
             api_messages.append({"role": "system", "content": request.system_instruction})
@@ -30,14 +31,13 @@ class MistralProvider(Provider):
         }
 
         start = time.perf_counter()
-        response = requests.post(
+        response = cls._make_request(
             MISTRAL_API_URL,
             json=payload,
             headers={"Authorization": f"Bearer {api_key}"},
         )
         latency = time.perf_counter() - start
 
-        cls._check_response(response)
         body = response.json()
 
         return CompletionResponse(
@@ -48,5 +48,5 @@ class MistralProvider(Provider):
         )
 
     @classmethod
-    def _stream(cls, request: CompletionRequest, api_key: str) -> Iterator[str]:
+    def _stream_response(cls, request: CompletionRequest, api_key: str) -> Iterator[str]:
         raise NotImplementedError

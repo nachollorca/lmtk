@@ -4,7 +4,9 @@ from lmtk.errors import (
     STATUS_TO_ERROR,
     AllModelsFailedError,
     AuthenticationError,
+    InternalServerError,
     LMTKError,
+    PermissionError,
     ProviderError,
     RateLimitError,
 )
@@ -85,11 +87,11 @@ class TestStatusToError:
     def test_401_maps_to_authentication(self):
         assert STATUS_TO_ERROR[401] is AuthenticationError
 
-    def test_403_maps_to_authentication(self):
-        assert STATUS_TO_ERROR[403] is AuthenticationError
+    def test_403_maps_to_permission(self):
+        assert STATUS_TO_ERROR[403] is PermissionError
 
     def test_429_maps_to_rate_limit(self):
         assert STATUS_TO_ERROR[429] is RateLimitError
 
-    def test_unknown_status_not_in_map(self):
-        assert 500 not in STATUS_TO_ERROR
+    def test_500_maps_to_internal_server_error(self):
+        assert STATUS_TO_ERROR[500] is InternalServerError
