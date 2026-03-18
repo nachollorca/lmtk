@@ -25,32 +25,61 @@ class Provider(ABC):
     api_key_name: str
 
     @classmethod
-    def _check_response(cls, response: requests.Response) -> None:
-        """Raise a ``ProviderError`` subclass for non-200 responses.
-
-        Maps common HTTP status codes to specific exception types so that
-        callers can handle authentication, rate-limiting, and other errors
-        uniformly across providers.
-        """
-        if response.status_code == 200:
-            return
-
-        assert response.status_code is not None
-        error_cls = STATUS_TO_ERROR.get(response.status_code, ProviderError)
-        raise error_cls(
-            status_code=response.status_code,
-            message=f"{cls.__name__}: HTTP {response.status_code} - {response.reason}",
-            provider=cls.__name__,
-            body=response.text,
-        )
-
-    @classmethod
     def get_response(
         cls, request: CompletionRequest, stream: bool
     ) -> CompletionResponse | Iterator[str]:
         """Resolve API credentials and delegate to the provider implementation.
 
         See ``lmtk.core.get_response`` for parameter docs and defaults.
+        """
+        api_key = cls._resolve_api_key()
+
+        if stream:
+            return cls._stream_response(request, api_key)
+        return cls._get_full_response(request, api_key)
+
+    @classmethod
+    @abstractmethod
+    def _get_full_response(cls, request: CompletionRequest, api_key: str) -> CompletionResponse:
+        """Provider-specific response generation."""
+        ...
+
+    @classmethod
+    @abstractmethod
+    def _stream_response(cls, request: CompletionRequest, api_key: str) -> Iterator[str]:
+        """Stream chat completion tokens from the provider."""
+        ...
+
+    @classmethod
+    def _make_request(
+        cls, url: str, *, json: dict, headers: dict | None = None, **kwargs
+    ) -> requests.Response:
+        """Send a POST request and raise on non-200 responses.
+
+        This is an ergonomic wrapper around ``requests.post`` that maps
+        common HTTP status codes to specific ``ProviderError`` subclasses
+        so callers get uniform error handling across providers.
+
+        Returns the :class:`requests.Response` on success.
+        """
+        response = requests.post(url, json=json, headers=headers, **kwargs)
+
+        if response.status_code != 200:
+            error_cls = STATUS_TO_ERROR.get(response.status_code, ProviderError)
+            raise error_cls(
+                status_code=response.status_code,
+                message=f"{cls.__name__}: HTTP {response.status_code} - {response.reason}",
+                provider=cls.__name__,
+                body=response.text,
+            )
+
+        return response
+
+    @classmethod
+    def _resolve_api_key(cls) -> str:
+        """Read the API key from the environment.
+
+        Raises :class:`AuthenticationError` when the variable is unset or empty.
         """
         api_key = os.getenv(cls.api_key_name)
         if not api_key:
@@ -59,25 +88,10 @@ class Provider(ABC):
                 message=f"Environment variable {cls.api_key_name} not set.",
                 provider=cls.__name__,
             )
-
-        if stream:
-            return cls._stream(request, api_key)
-        return cls._get_response(request, api_key)
-
-    @classmethod
-    @abstractmethod
-    def _get_response(cls, request: CompletionRequest, api_key: str) -> CompletionResponse:
-        """Provider-specific response generation."""
-        ...
-
-    @classmethod
-    @abstractmethod
-    def _stream(cls, request: CompletionRequest, api_key: str) -> Iterator[str]:
-        """Stream chat completion tokens from the provider."""
-        ...
+        return api_key
 
 
-def load_provider(name: str) -> type["Provider"]:
+def load_provider(name: str) -> type[Provider]:
     """Gets the appropriate Provider class for the given provider name.
 
     Imports ``<Name>Provider`` from ``lmtk.providers.<name>``

@@ -1,7 +1,7 @@
 """Contains the main logic to call language model APIs."""
 
-from collections.abc import Iterator
-from typing import Any
+from collections.abc import Iterator, Sequence
+from typing import Any, Literal, overload
 
 from pydantic import BaseModel
 
@@ -10,10 +10,35 @@ from lmtk.errors import AllModelsFailedError
 from lmtk.provider import load_provider
 from lmtk.utils import parallelize_function
 
+# @overload stubs let type checkers infer the return type of ``get_response`` based on ``stream``
+
+
+@overload
+def get_response(
+    model: str | list[str],
+    messages: Sequence[Message] | str,
+    system_instruction: str | None = None,
+    output_schema: type[BaseModel] | None = None,
+    *,
+    stream: Literal[True],
+    generation_kwargs: dict | None = None,
+) -> Iterator[str]: ...  # stream=True  -> yields tokens one by one
+
+
+@overload
+def get_response(
+    model: str | list[str],
+    messages: Sequence[Message] | str,
+    system_instruction: str | None = None,
+    output_schema: type[BaseModel] | None = None,
+    stream: Literal[False] = False,
+    generation_kwargs: dict | None = None,
+) -> CompletionResponse: ...  # stream=False (default) -> complete response
+
 
 def get_response(
     model: str | list[str],
-    messages: list[Message] | str,
+    messages: Sequence[Message] | str,
     system_instruction: str | None = None,
     output_schema: type[BaseModel] | None = None,
     stream: bool = False,
@@ -79,7 +104,7 @@ def get_response(
 
 def get_response_batch(
     model: str | list[str],
-    messages_list: list[list[Message] | str],
+    messages_list: Sequence[Sequence[Message] | str],
     system_instruction: str | None = None,
     output_schema: type[BaseModel] | None = None,
     generation_kwargs: dict[str, Any] | None = None,
