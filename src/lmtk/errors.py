@@ -22,12 +22,40 @@ class ProviderError(LMTKError):
         super().__init__(message)
 
 
+class BadRequestError(ProviderError):
+    """Raised for 400 responses -- invalid request."""
+
+
 class AuthenticationError(ProviderError):
-    """Raised for 401/403 responses or missing API credentials."""
+    """Raised for 401 -- missing or incorrect API credentials."""
+
+
+class BillingError(ProviderError):
+    """Raised for 402 responses -- billing issue or payment required."""
+
+
+class PermissionError(ProviderError):
+    """Raised for 403 -- credential is correct but lacks permission."""
+
+
+class NotFoundError(ProviderError):
+    """Raised for 404 responses -- resource not found."""
+
+
+class RequestTooLargeError(ProviderError):
+    """Raised for 413 responses -- request payload too large."""
 
 
 class RateLimitError(ProviderError):
     """Raised for 429 responses -- too many requests."""
+
+
+class InternalServerError(ProviderError):
+    """Raised for 500 responses -- internal server error."""
+
+
+class ServiceUnavailableError(ProviderError):
+    """Raised for 503 responses -- service overloaded or unavailable."""
 
 
 class AllModelsFailedError(LMTKError):
@@ -44,7 +72,13 @@ class AllModelsFailedError(LMTKError):
 
 
 STATUS_TO_ERROR: dict[int, type[ProviderError]] = {
+    400: BadRequestError,
     401: AuthenticationError,
-    403: AuthenticationError,
+    402: BillingError,
+    403: PermissionError,
+    404: NotFoundError,
+    413: RequestTooLargeError,
     429: RateLimitError,
+    500: InternalServerError,
+    503: ServiceUnavailableError,
 }
