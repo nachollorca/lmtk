@@ -6,25 +6,11 @@ import os
 import time
 from abc import ABC, abstractmethod
 from collections.abc import Iterator
-from dataclasses import dataclass
 
 import requests
 
-from lmtk.datatypes import CompletionRequest, CompletionResponse
+from lmtk.datatypes import CompletionRequest, CompletionResponse, RawResponse
 from lmtk.errors import STATUS_TO_ERROR, AuthenticationError, ProviderError
-
-
-@dataclass(frozen=True)
-class RawResponse:
-    """Lightweight intermediate result returned by provider implementations.
-
-    Carries the extracted content and token counts so the base class can
-    handle timing, schema validation, and ``CompletionResponse`` construction.
-    """
-
-    content: str
-    input_tokens: int
-    output_tokens: int
 
 
 class Provider(ABC):
