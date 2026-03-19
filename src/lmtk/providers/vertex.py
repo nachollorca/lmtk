@@ -1,13 +1,11 @@
 """Implements the provider to use models hosted in GCP Vertex API."""
 
-import json
 import os
-import time
 from collections.abc import Iterator
 
-from lmtk.datatypes import CompletionRequest, CompletionResponse
+from lmtk.datatypes import CompletionRequest
 from lmtk.errors import AuthenticationError
-from lmtk.provider import Provider
+from lmtk.provider import Provider, RawResponse
 
 DEFAULT_LOCATION = "us-central1"
 
@@ -32,6 +30,13 @@ class VertexProvider(Provider):
     """Provider for models hosted on the Google Vertex AI API (Gemini)."""
 
     api_key_name = "VERTEX_API_KEY"
+
+    # ── Auth ──────────────────────────────────────────────────────────────
+
+    @classmethod
+    def _build_auth_headers(cls, api_key: str) -> dict:
+        """Return Vertex AI API-key authentication headers."""
+        return {"x-goog-api-key": api_key}
 
     # ── Model / location parsing ──────────────────────────────────────────
 
@@ -210,37 +215,26 @@ class VertexProvider(Provider):
     # ── Provider interface implementation ─────────────────────────────────
 
     @classmethod
-    def _get_full_response(cls, request: CompletionRequest, api_key: str) -> CompletionResponse:
+    def _send_request(cls, request: CompletionRequest, api_key: str) -> RawResponse:
         model, location = cls._parse_model_id(request.model_id)
         project_id = cls._resolve_project_id()
         url = cls._build_url(model, location, project_id, stream=False)
         payload = cls._build_payload(request)
 
-        start = time.perf_counter()
         response = cls._make_request(
             url,
             json=payload,
-            headers={"x-goog-api-key": api_key},
+            headers=cls._build_auth_headers(api_key),
         )
-        latency = time.perf_counter() - start
 
         body = response.json()
         content = cls._extract_text(body)
-
         usage = body.get("usageMetadata", {})
-        input_tokens = usage.get("promptTokenCount", 0)
-        output_tokens = usage.get("candidatesTokenCount", 0)
 
-        parsed = None
-        if request.output_schema:
-            parsed = request.output_schema.model_validate_json(content)
-
-        return CompletionResponse(
+        return RawResponse(
             content=content,
-            input_tokens=input_tokens,
-            output_tokens=output_tokens,
-            latency=latency,
-            parsed=parsed,
+            input_tokens=usage.get("promptTokenCount", 0),
+            output_tokens=usage.get("candidatesTokenCount", 0),
         )
 
     @classmethod
@@ -253,17 +247,11 @@ class VertexProvider(Provider):
         response = cls._make_request(
             url,
             json=payload,
-            headers={"x-goog-api-key": api_key},
+            headers=cls._build_auth_headers(api_key),
             stream=True,
         )
 
-        for line in response.iter_lines(decode_unicode=True):
-            if not line or not line.startswith("data: "):
-                continue
-            data = line[len("data: ") :]
-            if data.strip() == "[DONE]":
-                break
-            chunk = json.loads(data)
+        for chunk in cls._iter_sse_chunks(response):
             candidates = chunk.get("candidates", [])
             if candidates:
                 parts = candidates[0].get("content", {}).get("parts", [])
