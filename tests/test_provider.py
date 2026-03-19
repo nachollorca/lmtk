@@ -118,6 +118,6 @@ class TestLoadProvider:
             load_provider("nonexistent_provider_xyz")
 
     def test_stub_provider_raises_attribute_error(self):
-        """vertex.py exists but has no VertexProvider class yet."""
+        """llamacpp.py exists but has no VertexProvider class yet."""
         with pytest.raises(AttributeError):
-            load_provider("vertex")
+            load_provider("llamacpp")
