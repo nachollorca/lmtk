@@ -31,33 +31,63 @@ from lmtk import get_response
 
 model = "mistral:mistral-small-2603"
 # supports locations as in "vertex:gemini-2.5-flash@europe-west4"
+```
 
-# single prompt
+<details>
+<summary>Single prompt</summary>
+
+```python
 response = get_response(model=model, messages="Tell me a joke")
+```
+</details>
 
-# multi-turn
+<details>
+<summary>Multi-turn conversation</summary>
+
+```python
 messages = [
     UserMessage("My name is Alice."),
     AssistantMessage("Nice to meet you, Alice!"),
     UserMessage("What is my name?"),
 ]
 response = get_response(model=model, messages=messages)
+```
+</details>
 
-# system prompt / generation kwargs
+<details>
+<summary>System prompt and generation kwargs</summary>
+
+```python
 response = get_response(
     model=model,
     messages="Hi!",
     system_instruction="Talk like a pirate",
     generation_kwargs={"temperature": 0.9, "max_tokens": 10}
 )
+```
+</details>
 
-# streaming
+<details>
+<summary>Streaming</summary>
+
+```python
 token_iter = get_response(model=model, messages="Count from 1 to 5.", stream=True)
+```
+</details>
 
-# model fallbacks (first request will fail, second will work)
+<details>
+<summary>Model fallbacks</summary>
+
+```python
 response = get_response(model=["mistral:nonexistent-model", model], messages="Hi")
+# first request will raise NotFoundError bc model does not exist, second will work
+```
+</details>
 
-# structured output -> response.parsed will have a Recipe instance
+<details>
+<summary>Structured output</summary>
+
+```python
 class Ingredient(BaseModel):
     name: str
     quantity: int
@@ -66,10 +96,18 @@ class Ingredient(BaseModel):
 class Recipe(BaseModel):
     ingredients: list[Ingredient]
 response = get_response(model=model, messages="How do I make cheescake?", output_schema=Recipe)
-
-# parallel calls
-results = get_response_batch(model=model, messages_list=["Greet in english", "Saluda en espanyol."])
+# response.parsed will have a Recipe instance
 ```
+</details>
+
+<details>
+<summary>Parallel calls</summary>
+
+```python
+results = get_response_batch(model=model, messages_list=["Greet in english", "Saluda en espanyol."])
+# results will be al list of CompletionResult
+```
+</details>
 
 ## Development
 
