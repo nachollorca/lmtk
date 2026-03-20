@@ -95,6 +95,7 @@ class Ingredient(BaseModel):
 
 class Recipe(BaseModel):
     ingredients: list[Ingredient]
+
 response = get_response(model=model, messages="How do I make cheescake?", output_schema=Recipe)
 # response.parsed will have a Recipe instance
 ```
