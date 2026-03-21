@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.1.2 (2026-03-21)
+
+### Bug Fixes
+
+- Another dummy commit to check if the CD worklow works
+  ([`2012f41`](https://github.com/nachollorca/lmdk/commit/2012f41f1ea4ee6e1b89870cc492777ada679840))
+
+
 ## v1.1.1 (2026-03-21)
 
 ### Bug Fixes
