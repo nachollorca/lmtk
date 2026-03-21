@@ -1,7 +1,7 @@
 """Contains the public-facing symbols."""
 
-from lmtk.core import get_response, get_response_batch
-from lmtk.datatypes import (
+from lmdk.core import complete, complete_batch
+from lmdk.datatypes import (
     AssistantMessage,
     CompletionRequest,
     CompletionResponse,
@@ -10,8 +10,8 @@ from lmtk.datatypes import (
 )
 
 __all__ = [
-    "get_response",
-    "get_response_batch",
+    "complete",
+    "complete_batch",
     "Message",
     "AssistantMessage",
     "UserMessage",

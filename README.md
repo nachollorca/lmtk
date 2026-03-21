@@ -1,15 +1,15 @@
-# lmtk
+# Language Model Development Kit
 
 What it offers:
 - **Simplest interface to call different Language Model APIs**
 - Minimal dependencies: HTTP requests only, no third party packages
 - Streaming
-- Comfy structured outputs, **only if the provider / model supports it natively**
-- Parallel calls
+- Comfy structured outputs via Pydantic models, **only if the provider / model supports it natively**
+- Parallel completions
 - Unified HTTP error handling
-- Locations (for AWS Bedrock, GCP Vertex and Azure)
-- Fallbacks
-- Bring Your Own Token (for each provider)
+- Easy location config (for providers with multiple datacenters like AWS Bedrock, GCP Vertex and Azure)
+- Model fallbacks
+- Bring Your Own Key (for each provider)
 
 What it does **NOT** offer:
 - Tools / function calling / MCP
@@ -23,11 +23,11 @@ If you are looking to keep granular control but extend on tools or multimodality
 If you want a unified a token for all providers and are willing to give away telemetry data, check Gateways like [openrouter](https://openrouter.ai).
 
 ## Install
-`uv add lmtk`
+`uv add lmdk`
 
 ## Basic usage
 ```python
-from lmtk import get_response
+from lmdk import complete
 
 model = "mistral:mistral-small-2603"
 # supports locations as in "vertex:gemini-2.5-flash@europe-west4"
@@ -37,7 +37,7 @@ model = "mistral:mistral-small-2603"
 <summary>Single prompt</summary>
 
 ```python
-response = get_response(model=model, messages="Tell me a joke")
+response = complete(model=model, messages="Tell me a joke")
 ```
 </details>
 
@@ -50,7 +50,7 @@ messages = [
     AssistantMessage("Nice to meet you, Alice!"),
     UserMessage("What is my name?"),
 ]
-response = get_response(model=model, messages=messages)
+response = complete(model=model, messages=messages)
 ```
 </details>
 
@@ -58,7 +58,7 @@ response = get_response(model=model, messages=messages)
 <summary>System prompt and generation kwargs</summary>
 
 ```python
-response = get_response(
+response = complete(
     model=model,
     messages="Hi!",
     system_instruction="Talk like a pirate",
@@ -71,7 +71,7 @@ response = get_response(
 <summary>Streaming</summary>
 
 ```python
-token_iter = get_response(model=model, messages="Count from 1 to 5.", stream=True)
+token_iter = complete(model=model, messages="Count from 1 to 5.", stream=True)
 ```
 </details>
 
@@ -79,7 +79,7 @@ token_iter = get_response(model=model, messages="Count from 1 to 5.", stream=Tru
 <summary>Model fallbacks</summary>
 
 ```python
-response = get_response(model=["mistral:nonexistent-model", model], messages="Hi")
+response = complete(model=["mistral:nonexistent-model", model], messages="Hi")
 # first request will raise NotFoundError bc model does not exist, second will work
 ```
 </details>
@@ -95,7 +95,8 @@ class Ingredient(BaseModel):
 
 class Recipe(BaseModel):
     ingredients: list[Ingredient]
-response = get_response(model=model, messages="How do I make cheescake?", output_schema=Recipe)
+
+response = complete(model=model, messages="How do I make cheescake?", output_schema=Recipe)
 # response.parsed will have a Recipe instance
 ```
 </details>
@@ -104,7 +105,7 @@ response = get_response(model=model, messages="How do I make cheescake?", output
 <summary>Parallel calls</summary>
 
 ```python
-results = get_response_batch(model=model, messages_list=["Greet in english", "Saluda en espanyol."])
+results = complete_batch(model=model, messages_list=["Greet in english", "Saluda en espanyol."])
 # results will be al list of CompletionResult
 ```
 </details>
@@ -113,8 +114,8 @@ results = get_response_batch(model=model, messages_list=["Greet in english", "Sa
 
 ### Structure
 ```text
-src/lmtk/
-├── core.py         # Entry points: get_response, get_response_batch
+src/lmdk/
+├── core.py         # Entry points: complete, complete_batch
 ├── datatypes.py    # Common message and response schemas
 ├── provider.py     # Base Provider class and registry
 ├── providers/      # Concrete implementations (Mistral, Vertex, etc.)
@@ -136,7 +137,7 @@ We use `just` for development tasks. Use:
 3. **PRs**: Link your PR to the relevant issue using the PR template.
 
 You can use `just validate <model>` (runs `example.py`) to verify which features run properly and which do not for a new provider / model.
-Not all of them have to pass to open a PR: some providers do not even support native structured output.
+**Not all of them have to pass to open a PR:** some providers do not even support native structured output. Do at least the normal non-structured, non-streamed completion. The rest can raise `NotImplementedError`.
 
 ## License
 MIT
