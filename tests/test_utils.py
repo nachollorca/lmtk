@@ -4,7 +4,7 @@ import time
 
 import pytest
 
-from lmdk.utils import parallelize_function, return_if_exception
+from lmdk.utils import parallelize_function, render_template, return_if_exception
 
 # ---------------------------------------------------------------------------
 # return_if_exception
@@ -87,3 +87,47 @@ class TestParallelizeFunction:
         assert results == list(range(5))
         # 5 tasks sleeping 0.1s each, with 5 workers should take ~0.1s not ~0.5s
         assert elapsed < 0.3
+
+
+# ---------------------------------------------------------------------------
+# render_template
+# ---------------------------------------------------------------------------
+
+
+def test_render_template_string():
+    template = "Hello {{ name }}!"
+    result = render_template(template=template, name="World")
+    assert result == "Hello World!"
+
+
+def test_render_template_path(tmp_path):
+    template_file = tmp_path / "template.jinja"
+    template_file.write_text("Hello {{ name }} from file!")
+
+    result = render_template(path=template_file, name="World")
+    assert result == "Hello World from file!"
+
+
+def test_render_template_path_string(tmp_path):
+    template_file = tmp_path / "template.jinja"
+    template_file.write_text("Hello {{ name }}!")
+
+    result = render_template(path=str(template_file), name="World")
+    assert result == "Hello World!"
+
+
+def test_render_template_no_args():
+    with pytest.raises(ValueError, match="Must provide either 'template' or 'path'"):
+        render_template()
+
+
+def test_render_template_both_args():
+    with pytest.raises(ValueError, match="Provide either 'template' or 'path', not both"):
+        render_template(template="foo", path="bar.jinja")
+
+
+def test_render_template_cleaning():
+    # Test existing cleaning logic
+    template = "Value: {{ val }}"
+    result = render_template(template=template, val="{{ dirty }}")
+    assert result == "Value: dirty"
