@@ -25,7 +25,7 @@ If you want a unified a token for all providers and are willing to give away tel
 ## Install
 `uv add lmdk`
 
-## Basic usage
+## Usage
 ```python
 from lmdk import complete
 
@@ -105,8 +105,31 @@ response = complete(model=model, prompt="How do I make cheescake?", output_schem
 <summary>Parallel calls</summary>
 
 ```python
+from lmdk import complete_batch
+
 results = complete_batch(model=model, prompt_list=["Greet in english", "Saluda en espanyol."])
 # results will be al list of CompletionResult
+```
+</details>
+
+<details>
+<summary>Template Rendering</summary>
+
+```python
+from lmdk import render_template
+
+# Render a template string with variables
+result = render_template(
+    template="Hello, {{ name }}!",
+    name="World"
+)
+# Output: "Hello, World!"
+
+# Render a template from a jinja file
+result = render_template(
+    path="path/to/template.jinja2",
+    name="World"
+)
 ```
 </details>
 

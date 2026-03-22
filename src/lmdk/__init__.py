@@ -8,6 +8,7 @@ from lmdk.datatypes import (
     Message,
     UserMessage,
 )
+from lmdk.utils import render_template
 
 __all__ = [
     "complete",
@@ -17,4 +18,5 @@ __all__ = [
     "UserMessage",
     "CompletionRequest",
     "CompletionResponse",
+    "render_template",
 ]
