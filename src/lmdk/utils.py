@@ -3,6 +3,7 @@
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import wraps
+from pathlib import Path
 from typing import Any
 
 
@@ -69,3 +70,51 @@ def parallelize_function(
             index = futures_to_indices[future]
             results[index] = future.result()
     return results
+
+
+def render_template(
+    template: str | None = None,
+    path: str | Path | None = None,
+    *args,
+    **kwargs,
+) -> str:
+    """Renders a Jinja2 template from a string or a file path.
+
+    Ensures that double curly braces in the input are removed to avoid rendering issues.
+    All string variables are stripped of leading/trailing whitespace.
+
+    Args:
+        template (str): The Jinja2 template string.
+        path (str or Path): The path to a template file.
+        *args: Positional arguments to pass to the template.
+        **kwargs: Keyword arguments to pass to the template.
+
+    Returns:
+        str: The rendered template string.
+
+    Raises:
+        ValueError: If neither template nor path is provided, or if both are provided.
+    """
+    if template is not None and path is not None:
+        raise ValueError("Provide either 'template' or 'path', not both.")
+    if template is None and path is None:
+        raise ValueError("Must provide either 'template' or 'path'.")
+
+    from jinja2 import Template  # lazy load
+
+    if path is not None:
+        template_content = Path(path).read_text()
+    else:
+        template_content = template
+
+    processed_args = [
+        arg.replace("{{", "").replace("}}", "").strip() if isinstance(arg, str) else arg
+        for arg in args
+    ]
+    processed_kwargs = {
+        k: v.replace("{{", "").replace("}}", "").strip() if isinstance(v, str) else v
+        for k, v in kwargs.items()
+    }
+    assert template_content is not None
+    jinja_template = Template(template_content)
+    return jinja_template.render(*processed_args, **processed_kwargs)
