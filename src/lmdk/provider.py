@@ -16,9 +16,9 @@ from lmdk.errors import STATUS_TO_ERROR, AuthenticationError, ProviderError
 class Provider(ABC):
     """Interface that all LLM providers must implement.
 
-    Subclasses must define this class attribute:
-        env_var_names: Tuple of environment variable names the provider needs
-            (e.g. ``("MISTRAL_API_KEY",)`` or ``("VERTEX_API_KEY", "GCP_PROJECT_ID")``).
+    Subclasses must define class attribute ``env_var_names``:
+    A string or tuple of environment variable names the provider needs. For example:
+    ``"MISTRAL_API_KEY"`` or ``("VERTEX_API_KEY", "GCP_PROJECT_ID")``).
 
     The main method in the base class (``complete``) handles:
         - credential resolution (``_resolve_credentials``)
@@ -37,7 +37,7 @@ class Provider(ABC):
         - ``_stream_response`` to build the HTTP body and parse the streamed tokens
     """
 
-    env_var_names: tuple[str, ...]
+    env_var_names: str | tuple[str, ...]
 
     @classmethod
     def complete(
@@ -145,8 +145,13 @@ class Provider(ABC):
 
         Raises :class:`AuthenticationError` when any variable is unset or empty.
         """
+        # Normalize to a tuple if a single string is provided
+        vars_to_resolve = (
+            (cls.env_var_names,) if isinstance(cls.env_var_names, str) else cls.env_var_names
+        )
+
         credentials: dict[str, str] = {}
-        for var in cls.env_var_names:
+        for var in vars_to_resolve:
             value = os.getenv(var)
             if not value:
                 raise AuthenticationError(

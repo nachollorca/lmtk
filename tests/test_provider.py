@@ -44,6 +44,54 @@ class TestProviderComplete:
         with pytest.raises(AuthenticationError, match="FAKE_API_KEY"):
             fake_provider.complete(request=_make_request(), stream=False)
 
+    def test_resolves_credentials_with_single_str(self, monkeypatch):
+        """Verify that env_var_names as a single string works."""
+
+        class StrProvider(Provider):
+            env_var_names = "SINGLE_KEY"
+
+            @classmethod
+            def _build_auth_headers(cls, credentials):
+                return {}
+
+            @classmethod
+            def _send_request(cls, request, credentials):
+                return RawResponse(
+                    content=credentials["SINGLE_KEY"], input_tokens=0, output_tokens=0
+                )
+
+            @classmethod
+            def _stream_response(cls, request, credentials):
+                yield credentials["SINGLE_KEY"]
+
+        monkeypatch.setenv("SINGLE_KEY", "secret-value")
+        result = StrProvider.complete(request=_make_request(), stream=False)
+        assert result.content == "secret-value"
+
+    def test_resolves_credentials_with_tuple(self, monkeypatch):
+        """Verify that env_var_names as a tuple still works."""
+
+        class TupleProvider(Provider):
+            env_var_names = ("KEY1", "KEY2")
+
+            @classmethod
+            def _build_auth_headers(cls, credentials):
+                return {}
+
+            @classmethod
+            def _send_request(cls, request, credentials):
+                content = f"{credentials['KEY1']}-{credentials['KEY2']}"
+                return RawResponse(content=content, input_tokens=0, output_tokens=0)
+
+            @classmethod
+            def _stream_response(cls, request, credentials):
+                yield "stub"
+
+        monkeypatch.setenv("KEY1", "val1")
+        monkeypatch.setenv("KEY2", "val2")
+        result = TupleProvider.complete(request=_make_request(), stream=False)
+        assert result.content == "val1-val2"
+
     def test_delegates_to_complete(self, fake_provider):
         result = fake_provider.complete(request=_make_request(), stream=False)
         assert isinstance(result, CompletionResponse)
