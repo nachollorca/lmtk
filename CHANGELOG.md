@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.3.1 (2026-03-27)
+
+### Bug Fixes
+
+- Use global as default location for vertex
+  ([`1acdf6a`](https://github.com/nachollorca/lmdk/commit/1acdf6a484caa7114dcfd85ae027615e0c9b9de3))
+
+
 ## v1.3.0 (2026-03-24)
 
 ### Code Style
